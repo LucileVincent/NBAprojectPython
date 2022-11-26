@@ -66,6 +66,7 @@ def clean_league_avg(league_avg):
     df = pd.DataFrame(data, columns=league_avg["resultSets"][0]["headers"])
 
     df = df.groupby("SHOT_ZONE_BASIC").agg({"FGA": "sum", "FGM": "sum"})
+
     df.loc["Above the Break 3", "FGA"] += df.loc["Backcourt", "FGA"]
     df["FG%"] = df["FGM"] / df["FGA"]
     df.drop("Backcourt", inplace=True)
@@ -75,7 +76,6 @@ def clean_league_avg(league_avg):
 
 def add_text(ax, zone, league_avg, percent):
     points = [(-22, 250), (-22, 100), (-250, 0), (-22, 170), (-22, 0), (200, 0)]
-    print(percent)
     zone = zone["Shot Type"].unstack()
     for i in range(len(zone)):
         text = "   " + str(int(zone["Made Shot"][i])) + "/" + str(
