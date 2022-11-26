@@ -17,6 +17,18 @@ df = pd.DataFrame(players['resultSets'][0]['rowSet'], columns=players['resultSet
 
 player_pos = []
 
+url = "https://stats.nba.com/stats/leaguedashplayerbiostats?College=&Conference=&Country=&DateFrom=&DateTo=&Division" \
+      "=&DraftPick=&DraftYear=&GameScope=&GameSegment=&Height=&LastNGames=0&LeagueID=00&Location=&Month=0" \
+      "&OpponentTeamID=0&Outcome=&PORound=0&PerMode=PerGame&Period=0&PlayerExperience=&PlayerPosition=&Season=2022-23" \
+      "&SeasonSegment=&SeasonType=Regular+Season&ShotClockRange=&StarterBench=&TeamID=0&VsConference=&VsDivision" \
+      "=&Weight= "
+
+players = get_data(url, True)
+
+df2 = pd.DataFrame(players['resultSets'][0]['rowSet'], columns=players['resultSets'][0]['headers'])
+df = df.merge(df2[["PLAYER_ID",'PLAYER_HEIGHT_INCHES',"PLAYER_WEIGHT"]], on='PLAYER_ID', how='left')
+
+
 # get the position of each player
 for pos in ["pg", "sg", "sf", "pf", "c"]:
     url = "http://www.espn.com/nba/players/_/position/" + pos
@@ -37,8 +49,7 @@ for pos in ["pg", "sg", "sf", "pf", "c"]:
         player = r.find_all('a')[0].text.split(",")
         player_pos.append((player[1].replace(" ", "") + " " + player[0], pos.upper()))
 
-# create the dataframe of players
-df = pd.DataFrame(players['resultSets'][0]['rowSet'], columns=players['resultSets'][0]['headers'])
+
 
 # create the dataframe of positions
 df_position = pd.DataFrame(player_pos, columns=['PLAYER_NAME', 'POSITION'])
