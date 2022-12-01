@@ -1,64 +1,45 @@
-
+import pandas as pd
+import seaborn as sns
 from src.Functions.functions import *
 
-# load json
-with open('Data/NBA_Matches_Stats.json') as f:
-    data = json.load(f)
+df = pd.read_csv("Data/NBA_Players_Stats.csv")
+df = df[df["MIN"] != 0]
 
-points = []
-df = pd.DataFrame()
+teams = pd.read_csv("Data/NBA_Teams_Stats.csv")
 
-for d in data:
-    for action in d["playByPlay"]["actions"]:
-        if "Shot" in action['actionType']:
-            if action["playerNameI"] == "S. Curry":
-                df = pd.concat([df, pd.DataFrame(action, index=[0])], ignore_index=True)
+df = df.merge(teams[["AST", "FGM","PACE","TEAM_ID"]], on="TEAM_ID", how="left", suffixes=("", "_TEAM"))
 
-df = df.rename(columns={"actionType": "Shot Type"})
+df = df[df["MIN"] >30]
 
-# add if the shot is a 3 pointer or not
-df["zone"] = df.apply(lambda r: get_zone_(r), axis=1)
+# calculate player efficiency rating
 
-images = [(plt.imread("court-top.png")), plt.imread("court-2points.png"),
-          plt.imread("court-bottom-left.png"), plt.imread("court-inside.png"),
-          plt.imread("court-hoop.png"), plt.imread("court-bottom-right.png")]
 
-# check the accuracy of each zones
-zones = df.groupby(["zone", "Shot Type"]).agg({"Shot Type": "count"})
+factor = 2 / 3 - (0.5 * (df["AST"].mean() / df["FGM"].mean())) / (2 * df["FGM"].mean() / df["FTM"].mean())
+VOP = df["PTS"].mean() / ( df["FGA"].mean()- df["OREB"].mean() + df["TOV"].mean() + 0.44 * df["FTA"].mean() )
+DRBP = df["REB"].mean() - df["OREB"].mean() / (df["REB"].mean())
+uPER = 1 / (df["MIN"]) * (df["FG3M"] + (df["AST"] * 2 / 3) + ((2 - factor * df["AST_TEAM"] / df["FGM_TEAM"])
+        * df["FGM"]) + (0.5 * df["FTM"] * (2-1/3 * df["AST_TEAM"] / df["FGM_TEAM"]))-VOP *(DRBP *(2*df["OREB"]+ df["BLK"]
+        - 0.2464 *(df["FTA"]-df["FTM"])-(df["FGA"]-df["FGM"])- df["REB"]) + (0.44 * df["FTA"].mean()*df["PFD"])/df["PFD"].mean()
+        -(df["TOV"]-df["OREB"])-df["STL"] + df["REB"]-1.936*(df["FTA"]-df["FTM"])) + df["PFD"]*df["FTM"].mean()/df["PFD"].mean())
 
-percent = zones["Shot Type"].unstack()["Made Shot"] / (
-        zones["Shot Type"].unstack()["Missed Shot"] + zones["Shot Type"].unstack()["Made Shot"])
+df["PER"] = (uPER * df["PACE"].mean()/ df["PACE"])* 15/uPER.mean()
 
-with open('Data/LeagueAverage.json') as f:
-    league_avg = json.load(f)
 
-league_avg = clean_league_avg(league_avg)
+print(df["PER"].max())
+print(df["PER"].min())
 
-fig, ax = plt.subplots(figsize=(10, 10))
-img = plt.imread("court.png")
-ax.imshow(img, extent=[-270, 270, -67.5, 442.5])
+df = df.sort_values(by="PER", ascending=False)
+print(df.head(10))
 
-for id in range(len(images)):
-    try:
-        for i in images[id]:
-            for j in i:
-                if j[3] != 0:
-                    if (float(percent[id])) > (float(league_avg[percent.index.values[id]])):
-                        j[0] = j[2] = 0
-                    else:
-                        j[2] = j[1] = 0
+df = df.sort_values(by="PER", ascending=True)
+print(df.head(10))
 
-        ax.imshow(images[id], extent=[-270, 270, -67.5, 442.5])
+# plot the distribution of PER
 
-    except:
-        pass
-
-add_text(ax, zones, league_avg, percent)
-
-ax.legend('PA = Player Average\nLA = League Average', loc="upper left", bbox_to_anchor=(1, 1))
-plt.xlim(-250, 250)
-plt.ylim(-47.5, 422.5)
-
+plt.hist(df["PER"], bins=100)
 plt.show()
 
-# create a graph with polygons for the court
+# plot the distribution of PER for the top 10 players
+
+sns.histplot(df["PER"], bins=20, kde=True)
+plt.show()

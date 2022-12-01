@@ -72,6 +72,14 @@ teams = get_data(url, True)
 
 df = pd.DataFrame(teams['resultSets'][0]['rowSet'], columns=teams['resultSets'][0]['headers'])
 
+url = "https://stats.nba.com/stats/leaguedashteamstats?Conference=&DateFrom=&DateTo=&Division=&GameScope=&GameSegment" \
+      "=&Height=&LastNGames=0&LeagueID=00&Location=&MeasureType=Advanced&Month=0&OpponentTeamID=0&Outcome=&PORound=0" \
+      "&PaceAdjust=N&PerMode=Totals&Period=0&PlayerExperience=&PlayerPosition=&PlusMinus=N&Rank=N&Season=2022-23" \
+      "&SeasonSegment=&SeasonType=Regular+Season&ShotClockRange=&StarterBench=&TeamID=0&TwoWay=0&VsConference" \
+      "=&VsDivision="
+
+teams2 = get_data(url, True)
+df =df.merge(pd.DataFrame(teams2['resultSets'][0]['rowSet'], columns=teams2['resultSets'][0]['headers']), on="TEAM_ID",how="left")
 # save the dataframe to a csv file
 df.to_csv('Data/NBA_Teams_Stats.csv', index=False)
 
